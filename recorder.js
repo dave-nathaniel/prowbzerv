@@ -71,4 +71,34 @@
     }
     return 'body' + path;
   }
+
+  // Observe DOM for alert/error messages
+  const observer = new MutationObserver(mutations => {
+    for (const m of mutations) {
+      m.addedNodes.forEach(node => {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (isAlertElement(node)) {
+          const payload = {
+            url: location.pathname + location.search,
+            action: 'alert',
+            element: getUniqueSelector(node),
+            type: 'alert'
+          };
+          chrome.runtime.sendMessage({ type: 'STEP', payload });
+        }
+      });
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  function isAlertElement(el) {
+    const role = el.getAttribute && el.getAttribute('role');
+    if (role === 'alert' || role === 'alertdialog') return true;
+    const cls = (el.className || '').toLowerCase();
+    if (/error|alert|invalid|warning|toast/.test(cls)) return true;
+    const text = (el.textContent || '').toLowerCase();
+    if (/error|incorrect|failed|invalid/.test(text)) return true;
+    return false;
+  }
 })(); 
