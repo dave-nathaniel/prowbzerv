@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "ProwbZerv",
+  "version": "0.1.0",
+  "description": "Record sequential webpage interactions for later replay.",
+  "permissions": ["scripting", "activeTab", "tabs", "storage", "webNavigation"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "ProwbZerv",
+    "default_popup": "popup/popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
