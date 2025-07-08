@@ -3,6 +3,7 @@
 let isRecording = false;
 let isPaused = false;
 let steps = [];
+let stepCounter = 1;
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -22,7 +23,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'STEP':
       if (isRecording && !isPaused) {
-        steps.push(message.payload);
+        steps.push({ index: stepCounter++, ...message.payload });
       }
       break;
 
@@ -57,7 +58,7 @@ chrome.webNavigation.onCommitted.addListener((details) => {
   // For SPA navigations this fires too
   if (!isPaused) {
     const urlObj = new URL(details.url);
-    steps.push({ url: urlObj.pathname + urlObj.search, action: 'navigate', element: '', type: '' });
+    steps.push({ index: stepCounter++, url: urlObj.pathname + urlObj.search, action: 'navigate', element: '', type: '' });
   }
   // Inject recorder for new document
   injectRecorder(details.tabId);
@@ -68,6 +69,7 @@ async function handleStartRecording() {
   isRecording = true;
   isPaused = false;
   steps = [];
+  stepCounter = 1;
   await injectRecorderIntoActiveTab();
 }
 
