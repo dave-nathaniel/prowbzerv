@@ -30,6 +30,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'POPUP_STATUS':
       sendResponse({ isRecording, isPaused });
       break;
+
+    case 'ELEMENT_SCREENSHOT':
+      handleElementScreenshot(message.bounding, sender, sendResponse);
+      return true;
   }
   // Indicate we will respond asynchronously when needed
   return true;
@@ -81,4 +85,17 @@ async function handleStopRecording() {
   // Open results page
   await chrome.tabs.create({ url: chrome.runtime.getURL('results.html') });
   console.log('ProwbZerv recorded steps:', steps);
+}
+
+async function handleElementScreenshot(bounding, sender, sendResponse) {
+  try {
+    const tab = sender.tab || (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+    chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' }, dataUrl => {
+      if (!dataUrl) return sendResponse({ screenshot: null });
+      // Just return the full screenshot, cropping is done in content script
+      sendResponse({ screenshot: dataUrl });
+    });
+  } catch (err) {
+    sendResponse({ screenshot: null });
+  }
 } 

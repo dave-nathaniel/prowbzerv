@@ -24,14 +24,22 @@
     }
 
     // Build payload once
-    const payload = {
-      url: location.pathname + location.search,
-      action: normalized,
-      element: getUniqueSelector(target),
-      type: getElementType(target)
-    };
-
-    chrome.runtime.sendMessage({ type: 'STEP', payload });
+    const identifiers = getAllIdentifiers(target);
+    const bounding = getBoundingRect(target);
+    // Request screenshot from background, then crop in content script
+    requestElementScreenshot(bounding).then(fullScreenshot => {
+      cropScreenshot(fullScreenshot, bounding).then(screenshot => {
+        console.log('Identifiers for event:', identifiers);
+        const payload = {
+          url: location.pathname + location.search,
+          action: normalized,
+          identifiers: identifiers,
+          type: getElementType(target),
+          screenshot: screenshot // base64 image
+        };
+        chrome.runtime.sendMessage({ type: 'STEP', payload });
+      });
+    });
   }
 
   function normalizeEventType(event) {
@@ -72,19 +80,84 @@
     return 'body' + path;
   }
 
+  // Generate all possible identifiers for an element
+  function getAllIdentifiers(el) {
+    const identifiers = {};
+    if (el.id) {
+      identifiers.id = `#${CSS.escape(el.id)}`;
+    }
+    ['data-test', 'aria-label', 'name', 'title'].forEach(attr => {
+      if (el.getAttribute && el.getAttribute(attr)) {
+        identifiers[attr] = `${el.tagName.toLowerCase()}[${attr}="${CSS.escape(el.getAttribute(attr))}"]`;
+      }
+    });
+    // fallback nth-child path
+    let path = '';
+    let current = el;
+    while (current && current.nodeType === Node.ELEMENT_NODE && current !== document.body) {
+      const index = Array.from(current.parentNode.children).indexOf(current) + 1;
+      path = `>${current.tagName.toLowerCase()}:nth-child(${index})` + path;
+      current = current.parentNode;
+    }
+    identifiers.nth = 'body' + path;
+    return identifiers;
+  }
+
+  function getBoundingRect(el) {
+    const rect = el.getBoundingClientRect();
+    return {
+      x: Math.round(rect.left + window.scrollX),
+      y: Math.round(rect.top + window.scrollY),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height)
+    };
+  }
+
+  function requestElementScreenshot(bounding) {
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'ELEMENT_SCREENSHOT', bounding }, resp => {
+        resolve(resp && resp.screenshot ? resp.screenshot : null);
+      });
+    });
+  }
+
+  function cropScreenshot(fullScreenshot, bounding) {
+    return new Promise(resolve => {
+      if (!fullScreenshot) return resolve(null);
+      const img = new window.Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = bounding.width;
+        canvas.height = bounding.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, bounding.x, bounding.y, bounding.width, bounding.height, 0, 0, bounding.width, bounding.height);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = function() { resolve(null); };
+      img.src = fullScreenshot;
+    });
+  }
+
   // Observe DOM for alert/error messages
   const observer = new MutationObserver(mutations => {
     for (const m of mutations) {
       m.addedNodes.forEach(node => {
         if (node.nodeType !== Node.ELEMENT_NODE) return;
         if (isAlertElement(node)) {
-          const payload = {
-            url: location.pathname + location.search,
-            action: 'alert',
-            element: getUniqueSelector(node),
-            type: 'alert'
-          };
-          chrome.runtime.sendMessage({ type: 'STEP', payload });
+          const identifiers = getAllIdentifiers(node);
+          const bounding = getBoundingRect(node);
+          requestElementScreenshot(bounding).then(fullScreenshot => {
+            cropScreenshot(fullScreenshot, bounding).then(screenshot => {
+              const payload = {
+                url: location.pathname + location.search,
+                action: 'alert',
+                identifiers: identifiers,
+                type: 'alert',
+                screenshot: screenshot
+              };
+              chrome.runtime.sendMessage({ type: 'STEP', payload });
+            });
+          });
         }
       });
     }
