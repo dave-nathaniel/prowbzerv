@@ -25,16 +25,16 @@ p{
 
 #jsonOutput {
   overflow-x: hidden;
+  font-size: 10px;
 }
 
 .json-output {
-  font-size: 10px;
   font-family: monospace;
   background: #f7f7f7; padding: 10px; border: 1px solid #ddd;overflow: auto;
 }
 
 #stepsForm > div {
-  background: #fff;
+  background: #f6f6f6;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   padding: 16px;
