@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const stepsForm = document.getElementById('stepsForm');
   const downloadBtn = document.getElementById('downloadBtn');
-
+  const resetBtn = document.getElementById('resetBtn');
   const { prowbz_steps } = await chrome.storage.session.get('prowbz_steps');
   const steps = prowbz_steps || [];
   const selections = steps.map(step => {
@@ -9,58 +9,95 @@ document.addEventListener('DOMContentLoaded', async () => {
     return ids.length > 0 ? ids[0] : null;
   });
 
-  // Render selector pickers
-  steps.forEach((step, i) => {
-    console.log('Step identifiers:', step.identifiers);
-    const div = document.createElement('div');
-    div.style.marginBottom = '1em';
-    const label = document.createElement('label');
-    label.textContent = `Step ${step.index}: [${step.action}] ${step.url}`;
-    label.style.display = 'block';
-    div.appendChild(label);
+  let currentSteps = [...steps];
+  let currentSelections = [...selections];
 
-    if (step.screenshot) {
-      const img = document.createElement('img');
-      img.src = step.screenshot;
-      img.alt = 'Element screenshot';
-      img.style.maxWidth = '200px';
-      img.style.maxHeight = '100px';
-      img.style.display = 'block';
-      img.style.marginBottom = '0.5em';
-      div.appendChild(img);
-    }
+  function resetSteps() {
+    currentSteps = [...steps];
+    currentSelections = [...selections];
+  }
 
-    const select = document.createElement('select');
-    const ids = step.identifiers ? Object.entries(step.identifiers) : [];
-    if (ids.length === 0) {
-      select.innerHTML = '<option value="">(No identifiers)</option>';
-      select.disabled = true;
-    } else {
-      ids.forEach(([key, value], idx) => {
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = `${key}: ${value}`;
-        if (idx === 0) opt.selected = true;
-        select.appendChild(opt);
+  function renderSteps() {
+    stepsForm.innerHTML = '';
+    console.log('Current steps:', currentSteps);
+    const jsonOutput = document.getElementById('jsonOutput');
+    jsonOutput.textContent = JSON.stringify(currentSteps, null, 2);
+    currentSteps.forEach((step, i) => {
+      console.log('Step identifiers:', step.identifiers);
+      // Use template literal for structure, then fill in dynamic values
+      const div = document.createElement('div');
+      div.style.position = 'relative';
+      div.style.marginBottom = '1em';
+
+      // HTML structure as per prompt
+      div.innerHTML = `
+        <button title="Remove step" style="position: absolute; margin-top: -1px; right: 8px; color: red;padding: 0px; width: 20px; height: 20px; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center;border: 1px solid red;line-height: 2px;">×</button>
+        <label style="display: block;text-align: center;">Step ${step.index}</label>
+        <p>URL: <code>${step.url}</code></p>
+        <p>Snapshot: <img src="" alt="Element screenshot" style="max-width:200px; max-height:100px; vertical-align:middle;"></p>
+        <div class="row d-flex align-items-center">
+            <div class="col-12 pb-2 mb-2 border-bottom">
+                <p>Action: </p>
+            </div>
+            <div class="col-6 text-center">
+                <code style="font-size: 18px;">[${step.action}]</code>
+            </div>
+            <div class="col-6">
+                <select></select>
+            </div>
+        </div>
+      `;
+
+      // Remove step button
+      const cancelBtn = div.querySelector('button[title="Remove step"]');
+      cancelBtn.addEventListener('click', () => {
+        currentSteps.splice(i, 1);
+        currentSelections.splice(i, 1);
+        renderSteps();
       });
-    }
-    select.addEventListener('change', () => {
-      selections[i] = select.value || null;
+
+      // Set screenshot if present
+      if (step.screenshot) {
+        const img = div.querySelector('img');
+        img.src = step.screenshot;
+      }
+
+      // Fill select with identifiers
+      const select = div.querySelector('select');
+      const ids = step.identifiers ? Object.entries(step.identifiers) : [];
+      if (ids.length === 0) {
+        select.innerHTML = '<option value="">(No identifiers)</option>';
+        select.disabled = true;
+      } else {
+        ids.forEach(([key, value], idx) => {
+          const opt = document.createElement('option');
+          opt.value = value;
+          opt.textContent = `${key}: ${value}`;
+          if (idx === 0) opt.selected = true;
+          select.appendChild(opt);
+        });
+      }
+      select.addEventListener('change', () => {
+        currentSelections[i] = select.value || null;
+      });
+
+      stepsForm.appendChild(div);
     });
-    div.appendChild(select);
-    stepsForm.appendChild(div);
-  });
+  }
+
+  renderSteps();
 
   // Always enable the download button
   downloadBtn.disabled = false;
 
   downloadBtn.addEventListener('click', () => {
     // Build new steps array with selected identifiers
-    const finalSteps = steps.map((step, i) => ({
-      index: step.index,
+    var stepCounter = 0;
+    const finalSteps = currentSteps.map((step, i) => ({
+      index: stepCounter++,
       url: step.url,
       action: step.action,
-      element: selections[i],
+      element: currentSelections[i],
       type: step.type,
       screenshot: step.screenshot
     }));
@@ -73,5 +110,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     a.download = 'prowbz_steps.json';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    resetSteps();
+    renderSteps();
   });
 }); 

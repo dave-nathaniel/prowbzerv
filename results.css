@@ -1,3 +1,97 @@
 body { font-family: Arial, sans-serif; padding: 20px; }
-#json { background: #f7f7f7; padding: 10px; border: 1px solid #ddd; max-height: 60vh; overflow: auto; }
-button { margin-top: 10px; padding: 8px 12px; } 
+button { margin-top: 10px; padding: 8px 12px; }
+
+/* Identifier selection styling */
+#stepsForm {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+p{
+  margin-top: 0;
+	margin-bottom: 0px;
+	font-size: 14px !important;
+}
+
+.edit-row {
+  max-height: 80vh;
+  min-height: 80vh;
+  flex-wrap: nowrap !important;
+}
+
+.edit-row .col-md-6 {
+  overflow: auto;
+}
+
+#jsonOutput {
+  overflow-x: hidden;
+}
+
+.json-output {
+  font-size: 10px;
+  font-family: monospace;
+  background: #f7f7f7; padding: 10px; border: 1px solid #ddd;overflow: auto;
+}
+
+#stepsForm > div {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+#stepsForm label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  display: block;
+}
+
+#stepsForm img {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+#stepsForm select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 14px;
+}
+
+#stepsForm select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+#stepsForm select:disabled {
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+#downloadBtn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+#downloadBtn:hover {
+  background: #0056b3;
+}
+
+#downloadBtn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+} 
